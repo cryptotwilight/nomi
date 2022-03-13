@@ -571,12 +571,13 @@
 
             console.log(transactionBlob);
 
-            var signed = account.sign(transactionBlob);
+            //var signed = account.sign(transactionBlob);
 
-            console.log("Identifying hash:", signed.hash);
-            console.log("Signed blob:", signed.tx_blob);
+            //console.log("Identifying hash:", signed.hash);
+            //console.log("Signed blob:", signed.tx_blob);
 
-            client.submitAndWait(signed.transactionBlob)
+            var wallet = account; 
+            client.submitAndWait(transactionBlob, {wallet})
                 .then(function(response) {
                     console.log(response);
                 })
