@@ -23,7 +23,7 @@
     <!-- end: Css -->
 
     <!--Xrpl -->
-    <script src="https://unpkg.com/xrpl@2.0.0/build/xrpl-latest-min.js"></script>
+    <script src='https://unpkg.com/xrpl@2.1.0-beta.1'></script>
 
     <!--Ipfs -->
     <script src="https://unpkg.com/ipfs-http-client-lite/dist/index.min.js"></script>
@@ -146,8 +146,8 @@
                                         </div>
                                     </div>
                                     <div class="panel-body text-center">
-                                        <h1>51181,320</h1>
-                                        <p>User active</p>
+                                        <h1><span id="held_nfts"></span></h1>
+                                        <p>NFTs</p>
                                         <hr/>
                                     </div>
                                 </div>
@@ -156,7 +156,7 @@
                                 <div class="panel box-v1">
                                     <div class="panel-heading bg-white border-none">
                                         <div class="col-md-6 col-sm-6 col-xs-6 text-left padding-0">
-                                            <h4 class="text-left">NFTs Traded</h4>
+                                            <h4 class="text-left">Minted NFTs</h4>
                                         </div>
                                         <div class="col-md-6 col-sm-6 col-xs-6 text-right">
                                             <h4>
@@ -165,8 +165,8 @@
                                         </div>
                                     </div>
                                     <div class="panel-body text-center">
-                                        <h1>51181,320</h1>
-                                        <p>New Orders</p>
+                                        <h1><span id="minted_nfts"></span></h1>
+                                        <p>Minted</p>
                                         <hr/>
                                     </div>
                                 </div>
@@ -196,54 +196,15 @@
                                 </div>
                                 <div class="panel-body padding-0 bg-white">
                                     <!--Hello  -->
-                                    Hello<span id="upload_display"></span>
-                                    <table>
-                                        <tr>
-                                            <thead>File To Mint</thead>
-                                            <thead></thead>
-                                        </tr>
-                                        <tr>
-                                            <td>
-
-                                            </td>
-                                            <td>
-
-
-
-                                            </td>
-                                        </tr>
-                                    </table>
+                                    <span id="mint_display"></span>
+                                    
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="col-md-12 padding-0">
-                            <div class="panel box-v2">
-                                <div class="panel-heading padding-0">
-                                    <img src="asset/img/bg2.jpg" class="box-v2-cover img-responsive" />
-                                    <div class="box-v2-detail">
-                                        <img src="asset/img/avatar.jpg" class="img-responsive" />
-                                        <h4>Akihiko Avaron</h4>
-                                    </div>
-                                </div>
-                                <div class="panel-body">
-                                    <div class="col-md-12 padding-0 text-center">
-                                        <div class="col-md-4 col-sm-4 col-xs-6 padding-0">
-                                            <h3>2.000</h3>
-                                            <p>Post</p>
-                                        </div>
-                                        <div class="col-md-4 col-sm-4 col-xs-6 padding-0">
-                                            <h3>2.232</h3>
-                                            <p>share</p>
-                                        </div>
-                                        <div class="col-md-4 col-sm-4 col-xs-12 padding-0">
-                                            <h3>4.320</h3>
-                                            <p>photos</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                  
                         </div>
 
                         <div class="col-md-12 padding-0">
@@ -428,7 +389,8 @@
 
                     <select id="modal_select_field"> 
                     <option value="" selected>Select Network</option>
-                    <option value="wss://xls20-sandbox.rippletest.net:51233">DEVNET</option>
+                    <option value="wss://xls20-sandbox.rippletest.net:51233">NFT DEVNET</option>
+                    <option value="wss://s.devnet.rippletest.net:51233">DEVNET</option>
                     <option value="wss://s.altnet.rippletest.net:51233">TESTNET</option>
                     <option value="wss://xrplcluster.com">MAINNET</option>
                   </select>
@@ -480,6 +442,10 @@
 
         const nftMintUpload = document.getElementById("nft_mint_upload");
 
+        const mintDisplay = ge("mint_display");
+
+   
+
         async function connectXRPL() {
             client = new xrpl.Client(modalConnectSelect.value);
             client.connect()
@@ -487,27 +453,58 @@
                     console.log(client.isConnected());
                     account = xrpl.Wallet.fromSeed(modalSeedField.value);
                     console.log(account);
-                    showWallet.innerHTML = "Connected Account ::> " + account.classicAddress;
-                    storage.setItem("xrpl_connection", client);
+
+                    client.request({
+                        "command": "account_info",
+                        "account": account.address,
+                        "ledger_index": "validated"
+                    })
+                    .then(function(response){
+                        console.log(response);
+                        showWallet.innerHTML = "Connected Account :: " + account.classicAddress + " Balance :: "+ response.result.account_data.Balance;
+                        storage.setItem("xrpl_connection", client);
+                        getNFTCount();
+                        listNFTs();
+                    })
+                    .catch(function(err){
+                        console.log(err);
+                    })
                 })
         }
 
-        async function getClientData() {
-
+        var nfts;
+        const heldNFTsSpan = ge("held_nfts");
+        const mintedNFTsSpan = ge("minted_nfts");
+        async function getNFTCount() { 
             client.request({
-                    "command": "account_info",
-                    "account": test_wallet.address,
-                    "ledger_index": "validated"
+                    method: "account_nfts",
+                    account: account.classicAddress
                 })
                 .then(function(response) {
                     console.log(response);
+                    var nfts = response.result.account_nfts;
+                    var held = nfts.length; 
+                    heldNFTsSpan.append(text(held));
+                    var minted = calculateMinted(nfts);
+                    mintedNFTsSpan.append(text(minted));
                 })
                 .catch(function(err) {
                     console.log(err);
                 })
         }
 
-        var nfts;
+        function calculateMinted(nfts) {
+            console.log(nfts);
+            var count = 0; 
+            for(var x = 0; x < nfts.length; x++) {
+                var issuer = nfts[x].Issuer;
+                if(issuer === account.classicAddress){
+                    count++;
+                }
+            }
+            return count; 
+        }
+
         async function listNFTs() {
 
             client.request({
@@ -527,8 +524,55 @@
 
         }
 
+        const EPOCH = 946684800; 
+
+        function getMintDisplay(result) {
+            
+            var displayTable = ce("table");
+            mintDisplay.append(displayTable);
+            var row = displayTable.insertRow();
+            var ac = cell(row);
+            var acv = cell(row);            
+            var at = text("Account");
+            ac.append(at);           
+            var atv = text(result.Account);
+            acv.append(atv);
+            var feeRow = displayTable.insertRow(); 
+            var f = cell(feeRow);
+            var fv = cell(feeRow);
+            var ft = text("Fee");            
+            f.append(ft);
+            var ftv = text(result.hash);
+            fv.append(ftv);
+            var dateRow = displayTable.insertRow(); 
+            var d = cell(dateRow);
+            var dv = cell(dateRow);
+            var dt = text("Date");
+            d.append(dt);
+            var dtv = text(new Date((result.date+EPOCH) * 1000));
+            dv.append(dtv);
+
+
+        }
+
+        function ge(element) {
+            return document.getElementById(element);
+        }
+
+        function ce(element){
+            return document.createElement(element);
+        }
+
+        function cell(row) {
+            return row.insertCell();
+        }
+
+        function text(txt) {
+            return document.createTextNode(txt);
+        }
+
         async function uploadToIPFSAndMint() {
-            checkConnected();
+
 
             console.log(nftMintUpload.value);
             console.log(nftMintUpload.files[0]);
@@ -542,7 +586,8 @@
             ipfs.add(nftMintUpload.files[0])
                 .then(function(response) {
                     console.log(response);
-                    var ipfsHash = response[0].value;
+                    var ipfsHash =  ""+response[0].hash;
+                    console.log(ipfsHash);
                     mintToken(ipfsHash);
                 })
                 .catch(function(err) {
@@ -551,21 +596,21 @@
         }
 
         async function checkConnected() {
-            var connected = storage.getItem("xrpl_connected");
+            var client = storage.getItem("xrpl_client");
             console.log("connected: " + connected);
-            if(connected != true){
+            if(connected == null || client == undefined || client.isConnected() == false){
               $('#connect_modal').modal('show');
             }
         }
 
         async function mintToken(ipfsHash) {
-
+            console.log("hash to mint : " + ipfsHash);
             var transactionBlob = {
 
                 TransactionType: "NFTokenMint",
                 Account: account.classicAddress,
                 URI: xrpl.convertStringToHex(ipfsHash + ""),
-                Flags : 8,
+                Flags : parseInt("8"),
                 TokenTaxon: 0
             }
 
@@ -580,6 +625,8 @@
             client.submitAndWait(transactionBlob, {wallet})
                 .then(function(response) {
                     console.log(response);
+                    getMintDisplay(response.result);
+
                 })
                 .catch(function(err) {
                     console.log(err);

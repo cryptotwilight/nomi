@@ -26,6 +26,8 @@
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
+        <!--Xrpl -->
+        <script src='https://unpkg.com/xrpl@2.1.0-beta.1'></script>
   </head>
 
 <body id="mimin" class="dashboard">
@@ -56,6 +58,7 @@
               </ul>
 
               <ul class="nav navbar-nav navbar-right user-nav">
+                <li></li>
                 <li>
                   <button id="connect_xrp" style="margin-top:0px !important;" class="btn-flip btn btn-3d btn-info" data-toggle="modal" data-target="#connect_modal">
               <div class="flip">
@@ -107,6 +110,9 @@
                         <p class="animated fadeInDown">
                           Dashboard <span class="fa-angle-right fa"></span> Gallery
                         </p>
+                        <p>
+                          <span id="show_wallet"></span>
+                        </p> 
                     </div>
                   </div>
               </div>
@@ -114,7 +120,21 @@
                   <div class="row" id="nft_display">
                    
                   </div>
+              
               </div>
+              <div> 
+                <div class="col-md-6">
+                  <div class="row" id="sell_offers_display">
+                    sell offers
+                  </div>
+              </div>
+              <div class="col-md-6">
+                <div class="row" id="buy_offers_display">
+                  buy offers
+                </div>
+            </div>
+              </div>
+             
             </div>
           <!-- end: content -->
 
@@ -126,6 +146,35 @@
       <footer> 
         This is your footer
       </footer>
+
+      <!-- Connect Modal --> 
+      <div class="modal fade modal-v2" id="connect_modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="col-md-3 modal-content-center">
+                    <img src="../asset/img/apple-icon-114x114.png">
+                </div>
+                <div class="col-md-9 modal-content-right">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <p>Enter you wallet seed.</p>
+                    <input id="modal_seed_field" type="text" class="modal-content-right-text-mail" />
+
+                    <select id="modal_select_field"> 
+                    <option value="" selected>Select Network</option>
+                    <option value="wss://xls20-sandbox.rippletest.net:51233">NFT DEVNET</option>
+                    <option value="wss://s.devnet.rippletest.net:51233">DEVNET</option>
+                    <option value="wss://s.altnet.rippletest.net:51233">TESTNET</option>
+                    <option value="wss://xrplcluster.com">MAINNET</option>
+                  </select>
+                    <button id="connect_modal_button" class="btn btn-primary" data-dismiss="modal">Connect</button>
+                </div>
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+    <!-- /.modal -->
+
       <!-- start: Mobile -->
       <div id="mimin-mobile" class="reverse">
         <div class="mimin-mobile-menu-list">
@@ -278,82 +327,93 @@
 <script src="../asset/js/plugins/jquery.nicescroll.js"></script>
 
 <script> 
+    var client;
+    var account;
 
+    var connected; 
 
-async function connectXRPL() {
-            client = new xrpl.Client(modalConnectSelect.value);
-            client.connect()
-                .then(function(response) {
-                    console.log(client.isConnected());
-                    account = xrpl.Wallet.fromSeed(modalSeedField.value);
-                    console.log(account);
-                    showWallet.innerHTML = "Connected Account ::> " + account.classicAddress;
-                    storage.setItem("xrpl_connection", client);
-                })
-        }
+    const storage = window.localStorage; 
 
-        async function getClientData() {
+    const modalConnectButton = document.getElementById("connect_modal_button");
+    modalConnectButton.addEventListener('click', connectXRPL);
+    modalConnectSelect = document.getElementById("modal_select_field");
 
-            client.request({
+    const modalSeedField = document.getElementById("modal_seed_field");
+    const showWallet = document.getElementById("show_wallet");
+
+    async function connectXRPL() {
+        client = new xrpl.Client(modalConnectSelect.value);
+        client.connect()
+            .then(function(response) {
+                console.log(client.isConnected());
+                account = xrpl.Wallet.fromSeed(modalSeedField.value);
+                console.log(account);
+
+                client.request({
                     "command": "account_info",
-                    "account": test_wallet.address,
+                    "account": account.address,
                     "ledger_index": "validated"
                 })
-                .then(function(response) {
+                .then(function(response){
                     console.log(response);
+                    showWallet.innerHTML = "Connected Account :: " + account.classicAddress + " Balance :: "+ response.result.account_data.Balance;
+                    storage.setItem("xrpl_connection", client);                       
+                    listNFTs();
                 })
-                .catch(function(err) {
+                .catch(function(err){
                     console.log(err);
                 })
-        }
+            })
+    }
 
-        var nfts;
-        async function listNFTs() {
+    async function getClientData() {
 
-            client.request({
-                    method: "account_nfts",
-                    account: account.classicAddress
-                })
-                .then(function(response) {
-                    console.log(response);
-                    populateGallery(response);
-                })
-                .catch(function(err) {
-                    console.log(err);
-                })
-        }
+        client.request({
+                "command": "account_info",
+                "account": test_wallet.address,
+                "ledger_index": "validated"
+            })
+            .then(function(response) {
+                console.log(response);
+            })
+            .catch(function(err) {
+                console.log(err);
+            })
+    }
 
+    var nfts;
+  
+    async function listNFTs() {
 
-const nftDisplay = document.getElementById("nft_display");
-function displayNfts() {
-    client.request({
-        method : "account_nfts",
-        account : account.classicAddress  
-    })
-    .then(function(response){
-      console.log(response);
-      var nfts = response; 
-      buildDisplay(nfts);
-    })
-    .catch(function(err){
-      console.log(err);
-    });
-  }
-  var imgURL = "../asset/img/android-icon-144x144.png";
+        client.request({
+            method: "account_nfts",
+            account: account.classicAddress
+        })
+        .then(function(response) {
+            console.log(response);
+            nfts = response.result.account_nfts; 
+            buildDisplay(nfts);  
+        })
+        .catch(function(err) {
+            console.log(err);
+        })
+    }
 
-  var nfts = [imgURL, imgURL, imgURL, imgURL ];
-
-  buildDisplay(nfts);
+  const nftDisplay = document.getElementById("nft_display");
 
   function buildDisplay(nfts) {
     for(var x = 0; x < nfts.length; x++) {
         var nft = nfts[x];
         build(nft);
+        getSellOffers(nft.TokenID);
+        getBuyOffers(nft.TokenID);
+        
     }
   }    
 
   function build(nft){ 
-        console.log("building ... ");
+        console.log(nft);
+        console.log("building ... " + nft);
         var holder = getDiv(); 
         nftDisplay.append(holder);
         holder.setAttribute("class","col-sm-6 col-md-3 product-grid" );
@@ -367,6 +427,7 @@ function displayNfts() {
         nameField.appendChild(txtName);
         var thumbnail = getDiv();
         holder.append(thumbnail);
+        /**
         var price = getDiv(); 
         thumbnail.append(price);
         price.setAttribute("class", "product-price product-price-bottom");
@@ -374,11 +435,13 @@ function displayNfts() {
         price.append(h4Price);
         var priceTxt = getTextNode("${price}"); 
         price.appendChild(priceTxt);
+        */
         var img = getImg();
         thumbnail.appendChild(img);
         //var imgURL = "http://ipfs.io/"+ "${cid}";
-      
-        img.setAttribute("src", nft);        
+        var cid = xrpl.convertHexToString(nft.URI);
+        console.log(cid);
+        img.setAttribute("src", "http://ipfs.io/ipfs/"+cid);        
         var caption = getDiv(); 
         thumbnail.append(caption);
         caption.setAttribute("class","caption");
@@ -386,43 +449,101 @@ function displayNfts() {
         caption.append(p);
         var a = getA(); 
         p.append(a);
-        a.setAttribute("href","#");
+        a.setAttribute("href","javascript:sellToken('" + nft.TokenID + "');");
         a.setAttribute("class", "btn btn-warning");
-        a.setAttribute("role", "button");
+        a.setAttribute("role", "button");        
         var buttonTxt = getTextNode("sell"); 
         a.append(buttonTxt);
+
+        var input = ce("input");
+        p.append(input);
+        input.setAttribute("id", nft.TokenID+"");
+        input.setAttribute("placeholder", "Enter price");
+
     }
 
-    function getDiv() { 
-      return ce("div");
-    }
+    function sellToken (tokenID) { 
+      console.log("token: " + tokenID);
+      const transactionBlob = {
+          "TransactionType": "NFTokenCreateOffer",
+          "Account": account.classicAddress,
+          "TokenID": tokenID,
+          "Amount": ge(tokenID).value,
+          "Flags": parseInt("8")
+      }
 
-    function getA() { 
-      return ce("a");
-    }
-    function getP(){
-      return ce("p");
-    }
+      // Submit signed blob --------------------------------------------------------
+      var wallet = account;
+      client.submitAndWait(transactionBlob,{wallet})
+      .then(function(response){
+          console.log(response);
 
-    function getImg(){
-      return ce("img");
-    }
+      })
+      .catch(function(err){
+          console.log(err);
+      });
+  }
 
-    function getSpan(){
-      return ce("span");
-    }
+  async function getSellOffers(tokenID) {
+    console.log("token id: " + tokenID);
+      client.request({ method: "nft_sell_offers",
+                tokenid: tokenID
+              })
+              .then(function(response){
+                console.log(response);
+              })
+              .catch(function(err){
+                console.log(err);
+              })
+	}
 
-    function getH4() { 
-      return ce("h4");
-    }
+  async function getBuyOffers(tokeID) { 
+    let nftBuyOffers
+    
+     client.request({ method: "nft_buy_offers",
+                      tokenid: tokeID })
+    .then(function(response){
+        console.log(response);
+    })
+    .catch(function(err){
+      console.log(err);
+    });                                     
+  }
 
-    function ce(name) {
-      return document.createElement(name);
-    }
+  function getDiv() { 
+    return ce("div");
+  }
 
-    function getTextNode(data){
-      return document.createTextNode(data);
-    }
+  function getA() { 
+    return ce("a");
+  }
+  function getP(){
+    return ce("p");
+  }
+
+  function getImg(){
+    return ce("img");
+  }
+
+  function getSpan(){
+    return ce("span");
+  }
+
+  function getH4() { 
+    return ce("h4");
+  }
+
+  function ce(name) {
+    return document.createElement(name);
+  }
+
+  function ge(element){
+    return document.getElementById(element);
+  }
+
+  function getTextNode(data){
+    return document.createTextNode(data);
+  }
 
 
     /*
