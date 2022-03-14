@@ -60,13 +60,13 @@
               <ul class="nav navbar-nav navbar-right user-nav">
                 <li></li>
                 <li>
-                  <button id="connect_xrp" style="margin-top:0px !important;" class="btn-flip btn btn-3d btn-info" data-toggle="modal" data-target="#connect_modal">
+                  <button id="connect_xrpl_button" style="margin-top:0px !important;" class="btn-flip btn btn-3d btn-info">
               <div class="flip">
                 <div class="side">
-                  Connect Xrp <span class="fa fa-chevron-circle-right"></span>
+                    <span id="connect_xrpl_text"></span>                  
                 </div>
                 <div class="side back">
-                  connect to test net?
+                  <span id="connect_xrpl_back_text"></span>
                 </div>
               </div>
               <span class="icon"></span>
@@ -334,14 +334,40 @@
 
     const storage = window.localStorage; 
 
-    const modalConnectButton = document.getElementById("connect_modal_button");
-    modalConnectButton.addEventListener('click', connectXRPL);
-    modalConnectSelect = document.getElementById("modal_select_field");
+    const connectXRPLButton = ge("connect_xrpl_button");
+    connectXRPLButton.addEventListener('click', showConnectModal);
+    const modalConnectButton = ge("connect_modal_button");
 
-    const modalSeedField = document.getElementById("modal_seed_field");
-    const showWallet = document.getElementById("show_wallet");
+    modalConnectButton.addEventListener('click', connectXRPL);
+    modalConnectSelect = ge("modal_select_field");
+
+    const modalSeedField = ge("modal_seed_field");
+    const showWallet = ge("show_wallet");
+
+    const nftDisplay = ge("nft_display");
+
+    const connectXRPLText = ge("connect_xrpl_text");
+    connectXRPLText.innerHTML = "Connect XRPL"; 
+    const connectXRPLBackText = ge("connect_xrpl_back_text");
+    connectXRPLBackText.innerHTML = " NFT Testnet?"; 
+    var connected = false; 
+
+
+
+    function showConnectModal() { 
+      if(!connected) {
+        $('#connect_modal').modal('show');
+      }
+      else{ 
+        connectXRPL(); 
+      }
+    }
 
     async function connectXRPL() {
+      console.log(connected);
+       if(!connected) {
+        //data-toggle="modal" data-target="#connect_modal"
+       
         client = new xrpl.Client(modalConnectSelect.value);
         client.connect()
             .then(function(response) {
@@ -357,13 +383,26 @@
                 .then(function(response){
                     console.log(response);
                     showWallet.innerHTML = "Connected Account :: " + account.classicAddress + " Balance :: "+ response.result.account_data.Balance;
-                    storage.setItem("xrpl_connection", client);                       
+                    storage.setItem("xrpl_connection", client);    
+                    connectXRPLText.innerHTML = "XRPL Connected"; 
+                    connectXRPLBackText.innerHTML = "Disconnect XRPL?";  
+                    connected = true;                   
+
                     listNFTs();
                 })
                 .catch(function(err){
                     console.log(err);
                 })
             })
+       }
+       else { 
+         console.log("connected : " + connected);
+         client.disconnect(); 
+         console.log("connected : " + client.isConnected());
+         showWallet.innerHTML = "Disconnected"; 
+        connected = false; 
+         console.log("client disconnected ");
+       }
     }
 
     async function getClientData() {
@@ -384,7 +423,7 @@
     var nfts;
   
     async function listNFTs() {
-
+        clearDisplay()
         client.request({
             method: "account_nfts",
             account: account.classicAddress
@@ -399,15 +438,20 @@
         })
     }
 
-  const nftDisplay = document.getElementById("nft_display");
+    function clearDisplay() { 
+      var children = nftDisplay.childNodes; 
+
+      for (var x = 0; x < children.length; x++) {
+        children[0].remove(); 
+      }
+    }
+
+
 
   function buildDisplay(nfts) {
     for(var x = 0; x < nfts.length; x++) {
         var nft = nfts[x];
-        build(nft);
-        getSellOffers(nft.TokenID);
-        getBuyOffers(nft.TokenID);
-        
+        build(nft);         
     }
   }    
 
@@ -423,7 +467,7 @@
         var nameField = getSpan();
         nftName.append(nameField)
         nameField.setAttribute("class", "pull-right");
-        var txtName = getTextNode("${NFT-NAME}");
+        var txtName = text("${NFT-NAME}");
         nameField.appendChild(txtName);
         var thumbnail = getDiv();
         holder.append(thumbnail);
@@ -447,19 +491,34 @@
         caption.setAttribute("class","caption");
         var p = getP(); 
         caption.append(p);
+
+        getSellOffers(nft.TokenID);
         var a = getA(); 
         p.append(a);
         a.setAttribute("href","javascript:sellToken('" + nft.TokenID + "');");
         a.setAttribute("class", "btn btn-warning");
-        a.setAttribute("role", "button");        
-        var buttonTxt = getTextNode("sell"); 
+        a.setAttribute("role", "button");  
+        a.setAttribute("id", nft.TokenID + "_sell_button");      
+        var buttonTxt = text("sell"); 
         a.append(buttonTxt);
+
+        var burn = getA(); 
+        p.append(burn);
+        burn.setAttribute("href","javascript:burnToken('" + nft.TokenID + "');");
+        burn.setAttribute("class", "btn btn-danger");
+        burn.setAttribute("role", "button");        
+        burn.setAttribute("id", nft.TokenID + "_burn_button");      
+        var buttonTxt = text("burn"); 
+        burn.append(buttonTxt); 
 
         var input = ce("input");
         p.append(input);
-        input.setAttribute("id", nft.TokenID+"");
+        input.setAttribute("id", nft.TokenID+"_sell_price");
         input.setAttribute("placeholder", "Enter price");
-
+        
+        var offers = getP(); 
+        thumbnail.append(offers);
+        getBuyOffers(nft.TokenID, offers);
     }
 
     function sellToken (tokenID) { 
@@ -468,10 +527,11 @@
           "TransactionType": "NFTokenCreateOffer",
           "Account": account.classicAddress,
           "TokenID": tokenID,
-          "Amount": ge(tokenID).value,
-          "Flags": parseInt("8")
+          "Amount": ge(tokenID+"_sell_price").value,
+          "Flags": parseInt("1")
       }
 
+      console.log(transactionBlob);
       // Submit signed blob --------------------------------------------------------
       var wallet = account;
       client.submitAndWait(transactionBlob,{wallet})
@@ -484,29 +544,69 @@
       });
   }
 
-  async function getSellOffers(tokenID) {
-    console.log("token id: " + tokenID);
-      client.request({ method: "nft_sell_offers",
-                tokenid: tokenID
-              })
-              .then(function(response){
-                console.log(response);
-              })
-              .catch(function(err){
-                console.log(err);
-              })
-	}
-
-  async function getBuyOffers(tokeID) { 
-    let nftBuyOffers
-    
-     client.request({ method: "nft_buy_offers",
-                      tokenid: tokeID })
+  function burnToken(tokenID) { 
+    const transactionBlob = {
+      "TransactionType": "NFTokenBurn",
+      "Account": account.classicAddress,
+      "TokenID": tokenID
+    }
+    var wallet = account;
+    client.submitAndWait(transactionBlob,{wallet})
     .then(function(response){
-        console.log(response);
+      console.log(response);
+       listNFTs(); 
     })
     .catch(function(err){
       console.log(err);
+    })
+  }
+
+  async function getSellOffers(tokenID) {
+    console.log("token id: " + tokenID);
+    var count = 0; 
+    client.request({  method: "nft_sell_offers",
+                      tokenid: tokenID                      
+                  })
+                  .then(function(response){
+                    console.log(response);
+                    var sellButton  = ge(tokenID+"_sell_button");
+                    var sellPrice   = ge(tokenID+"_sell_price");
+                    var burnButton  = ge(tokenID+"_burn_button");
+                    disabl(sellButton);
+                    disabl(sellPrice);
+                    disabl(burnButton);
+                    sellPrice.parentElement.append(text("ON SALE"));
+
+                  })
+                  .catch(function(err){
+                    console.log(err);
+                  })
+	}
+
+  function disabl(element) {
+    element.setAttribute("class", "btn btn-round btn-default");
+    element.disabled = true; 
+    console.log(element.nodeName);
+    if(element.nodeName === "A"){
+      element.setAttribute("href", "#");
+    }
+    console.log("is disabled " + element.disabled);
+  }
+
+  async function getBuyOffers(tokeID, offers) { 
+    let nftBuyOffers
+    var count = 0;
+     client.request({ method: "nft_buy_offers",
+                      tokenid: tokeID })
+    .then(function(response){
+      console.log(response);        
+      var offersTxt = text("Buy Offers: " +count);
+      offers.append(offersTxt);  
+    })
+    .catch(function(err){
+      var offersTxt = text("Buy Offers: 0");
+      offers.append(offersTxt);
+      console.log(err);      
     });                                     
   }
 
@@ -541,42 +641,9 @@
     return document.getElementById(element);
   }
 
-  function getTextNode(data){
+  function text(data){
     return document.createTextNode(data);
   }
-
-
-    /*
-
-    <div class="col-sm-6 col-md-3 product-grid">
-                      <div class="col-md-12 product-location">
-                          <span class="pull-right"><span class="fa-map-marker fa"></span> Banyumas</span>
-                      </div>
-                      <div class="thumbnail">
-                        <div class="product-price product-price-bottom">
-                          <h4>$1,716</h4>
-                        </div>
-                        <img src="../holder.js/250x250" alt="...">
-                        <div class="caption">
-                          <small>Category</small>
-                          <small class="pull-right">
-                            <span class="rate fa-star fa"></span>
-                            <span class="rate fa-star fa"></span>
-                            <span class="rate fa-star fa"></span>
-                            <span class="rate fa-star fa"></span>
-                            <span class="rate fa-star-half fa"></span>
-                          </small>
-                          <h4>Product Name</h4>
-                          <p>Mussum ipsum cacilds, vidis litro abertis. Consetis adipiscings elitis.</p>
-                          <p><a href="#" class="btn btn-success" role="button">Buy</a></p>
-                        </div>
-                      </div>
-                    </div>
-                    */
-
-  
-
-
 </script>
 
 

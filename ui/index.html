@@ -27,11 +27,8 @@
 
     <!--Ipfs -->
     <script src="https://unpkg.com/ipfs-http-client-lite/dist/index.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-    <script src="https://cdn.ethers.io/lib/ethers-5.0.umd.min.js" type="text/javascript"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/ethjs@0.3.4/dist/ethjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>    
+    
     <link rel="shortcut icon" href="asset/img/logomi.png">
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -69,17 +66,17 @@
 
                 <ul class="nav navbar-nav navbar-right user-nav">
                     <li>
-                        <button id="connect_xrp" style="margin-top:0px !important;" class="btn-flip btn btn-3d btn-info" data-toggle="modal" data-target="#connect_modal">
-                    <div class="flip">
-                      <div class="side">
-                        Connect Xrp <span class="fa fa-chevron-circle-right"></span>
-                      </div>
-                      <div class="side back">
-                        connect to test net?
-                      </div>
-                    </div>
-                    <span class="icon"></span>
-                  </button>
+                        <button id="connect_xrpl_button" style="margin-top:0px !important;" class="btn-flip btn btn-3d btn-info">
+                            <div class="flip">
+                              <div class="side">
+                                  <span id="connect_xrpl_text"></span>                  
+                              </div>
+                              <div class="side back">
+                                <span id="connect_xrpl_back_text"></span>
+                              </div>
+                            </div>
+                            <span class="icon"></span>
+                          </button>
                     </li>
                 </ul>
             </div>
@@ -179,10 +176,33 @@
                                 </div>
                                 <div class="panel-body padding-0">
                                     <div class="col-md-12 box-v4-alert">
+                                     
                                         <div class="panel">
+                                  
+                                            <div class="panel-body">
+                                                <label for="nft_name">NFT Name</label>
+                                                <input id="nft_name" type="text">
+                                            </div>
+                                            <div class="panel-body">
+                                                <label for="nft_description">Description</label>
+                                                <input id="nft_description" type="text">
+                                            </div>
+                                            <div class="panel-body">
+                                                <label for="nft_keywords">Keywords</label>
+                                                <input id="nft_keywords" type="text">
+                                            </div
                                             <div class="panel-body">
                                                 <input type="file" id="nft_mint_upload">
                                             </div>
+                                            <div class="panel-body">
+                                                <label for="nft_description">Base Stake</label>
+                                                <select id="nft_stake">
+                                                    <option value="50000">50000</option>
+                                                    <option value="150000">150000</option>
+                                                    <option value="250000">250000</option>
+                                                    <option value="550000">550000</option>
+                                                </select>
+                                            </div
                                         </div>
                                         <div class="col-md-6" style="margin-top:5px;">
                                             <button id="nft_mint_button" class="btn ripple-infinite btn-gradient btn-info">
@@ -208,7 +228,7 @@
                         </div>
 
                         <div class="col-md-12 padding-0">
-                            <!-- SPACE -->
+                            <img src="asset/img/android-icon-96x96.png">
                         </div>
 
                         <div class="col-md-12 padding-0">
@@ -376,11 +396,12 @@
       </button>
     <!-- end: Mobile -->
 
-    <div class="modal fade modal-v2" id="connect_modal">
+      <!-- Connect Modal --> 
+      <div class="modal fade modal-v2" id="connect_modal">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="col-md-3 modal-content-left">
-                    <b class="modal-content-left-text-1">XRPL Connecting...</b>
+                <div class="col-md-3 modal-content-center">
+                    <img src="../asset/img/apple-icon-114x114.png">
                 </div>
                 <div class="col-md-9 modal-content-right">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -419,6 +440,7 @@
     <script src="asset/js/plugins/dropzone.js"></script>
 
     <script>
+        
         const ipfs = window.IpfsHttpClientLite('https://ipfs.infura.io:5001')
 
         console.log("got ipfs: " + ipfs);
@@ -430,46 +452,79 @@
 
         const storage = window.localStorage; 
 
-        const modalConnectButton = document.getElementById("connect_modal_button");
+        const modalConnectButton = ge("connect_modal_button");
         modalConnectButton.addEventListener('click', connectXRPL);
-        modalConnectSelect = document.getElementById("modal_select_field");
+        modalConnectSelect      = ge("modal_select_field");
 
-        const modalSeedField = document.getElementById("modal_seed_field");
-        const showWallet = document.getElementById("show_wallet");
+        const modalSeedField    = ge("modal_seed_field");
+        const showWallet        = ge("show_wallet");
 
-        const nftMintButton = document.getElementById("nft_mint_button");
-        nftMintButton.addEventListener('click', uploadToIPFSAndMint)
+        const nameField         = ge("nft_name");
+        const descriptionField  = ge("nft_description");
+        const keywords          = ge("nft_keywords");
+        const nftMintUpload     = ge("nft_mint_upload");
+        const mintDisplay       = ge("mint_display");
+        const nftMintButton     = ge("nft_mint_button");
 
-        const nftMintUpload = document.getElementById("nft_mint_upload");
+        const features          = "";
 
-        const mintDisplay = ge("mint_display");
+        nftMintButton.addEventListener('click', uploadToIPFSAndMint);
+        
+        const connectXRPLButton = ge("connect_xrpl_button");
+        connectXRPLButton.addEventListener('click', showConnectModal);
+        const connectXRPLText = ge("connect_xrpl_text");
+        connectXRPLText.innerHTML = "Connect XRPL"; 
+        const connectXRPLBackText = ge("connect_xrpl_back_text");
+        connectXRPLBackText.innerHTML = " NFT Testnet?"; 
+        var connected = false; 
 
-   
+        function showConnectModal() { 
+            if(!connected) {
+                $('#connect_modal').modal('show');
+            }
+            else{ 
+                connectXRPL(); 
+            }
+        }
 
         async function connectXRPL() {
-            client = new xrpl.Client(modalConnectSelect.value);
-            client.connect()
-                .then(function(response) {
-                    console.log(client.isConnected());
-                    account = xrpl.Wallet.fromSeed(modalSeedField.value);
-                    console.log(account);
+            console.log(connected);
+            if(!connected) {
+                    client = new xrpl.Client(modalConnectSelect.value);
+                    client.connect()
+                    .then(function(response) {
+                        console.log(client.isConnected());
+                        account = xrpl.Wallet.fromSeed(modalSeedField.value);
+                        console.log(account);
 
-                    client.request({
-                        "command": "account_info",
-                        "account": account.address,
-                        "ledger_index": "validated"
+                        client.request({
+                            "command": "account_info",
+                            "account": account.address,
+                            "ledger_index": "validated"
+                        })
+                        .then(function(response){
+                            console.log(response);
+                            showWallet.innerHTML = "Connected Account :: " + account.classicAddress + " Balance :: "+ response.result.account_data.Balance;
+                            storage.setItem("xrpl_connection", client);
+                            storage.setItem("xrpl_connection", client);    
+                    connectXRPLText.innerHTML = "XRPL Connected"; 
+                    connectXRPLBackText.innerHTML = "Disconnect XRPL?";  
+                            getNFTCount();
+                            listNFTs();
+                        })
+                        .catch(function(err){
+                            console.log(err);
+                        })
                     })
-                    .then(function(response){
-                        console.log(response);
-                        showWallet.innerHTML = "Connected Account :: " + account.classicAddress + " Balance :: "+ response.result.account_data.Balance;
-                        storage.setItem("xrpl_connection", client);
-                        getNFTCount();
-                        listNFTs();
-                    })
-                    .catch(function(err){
-                        console.log(err);
-                    })
-                })
+            }
+            else { 
+                console.log("connected : " + connected);
+                client.disconnect(); 
+                console.log("connected : " + client.isConnected());
+                showWallet.innerHTML = "Disconnected"; 
+                connected = false; 
+                console.log("client disconnected ");
+            }
         }
 
         var nfts;
@@ -493,6 +548,22 @@
                 })
         }
 
+        function ge(element) {
+            return document.getElementById(element);
+        }
+
+        function ce(element){
+            return document.createElement(element);
+        }
+
+        function cell(row) {
+            return row.insertCell();
+        }
+
+        function text(txt) {
+            return document.createTextNode(txt);
+        }
+
         function calculateMinted(nfts) {
             console.log(nfts);
             var count = 0; 
@@ -505,29 +576,9 @@
             return count; 
         }
 
-        async function listNFTs() {
-
-            client.request({
-                    method: "account_nfts",
-                    account: account.classicAddress
-                })
-                .then(function(response) {
-                    console.log(response);
-                    populateGallery(response);
-                })
-                .catch(function(err) {
-                    console.log(err);
-                })
-        }
-
-        async function populateGallery(nfts) {
-
-        }
-
         const EPOCH = 946684800; 
 
-        function getMintDisplay(result) {
-            
+        function getMintDisplay(result) {            
             var displayTable = ce("table");
             mintDisplay.append(displayTable);
             var row = displayTable.insertRow();
@@ -551,28 +602,9 @@
             d.append(dt);
             var dtv = text(new Date((result.date+EPOCH) * 1000));
             dv.append(dtv);
-
-
-        }
-
-        function ge(element) {
-            return document.getElementById(element);
-        }
-
-        function ce(element){
-            return document.createElement(element);
-        }
-
-        function cell(row) {
-            return row.insertCell();
-        }
-
-        function text(txt) {
-            return document.createTextNode(txt);
         }
 
         async function uploadToIPFSAndMint() {
-
 
             console.log(nftMintUpload.value);
             console.log(nftMintUpload.files[0]);
@@ -584,15 +616,15 @@
             console.log(reader.result);
 
             ipfs.add(nftMintUpload.files[0])
-                .then(function(response) {
-                    console.log(response);
-                    var ipfsHash =  ""+response[0].hash;
-                    console.log(ipfsHash);
-                    mintToken(ipfsHash);
-                })
-                .catch(function(err) {
-                    console.log(err);
-                })
+            .then(function(response) {
+                console.log(response);
+                var ipfsHash =  ""+response[0].hash;
+                console.log(ipfsHash);
+                mintToken(ipfsHash);
+            })
+            .catch(function(err) {
+                console.log(err);
+            })
         }
 
         async function checkConnected() {
@@ -616,39 +648,21 @@
 
             console.log(transactionBlob);
 
-            //var signed = account.sign(transactionBlob);
-
-            //console.log("Identifying hash:", signed.hash);
-            //console.log("Signed blob:", signed.tx_blob);
-
             var wallet = account; 
             client.submitAndWait(transactionBlob, {wallet})
-                .then(function(response) {
-                    console.log(response);
-                    getMintDisplay(response.result);
+            .then(function(response) {
+                console.log(response);
+                getMintDisplay(response.result);
 
-                })
-                .catch(function(err) {
-                    console.log(err);
-                })
+            })
+            .catch(function(err) {
+                console.log(err);
+            })
         }
     </script>
 
     <!-- custom -->
     <script src="asset/js/main.js"></script>
-    <script type="text/javascript">
-
-
-            //  end:  Chart =============
-
-            // start: Calendar =========
-         
-  
-            // end : Calendar==========
-
-            // start: Maps============
-
-    </script>
     <!-- end: Javascript -->
 </body>
 
