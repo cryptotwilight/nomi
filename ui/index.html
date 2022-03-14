@@ -406,7 +406,7 @@
                 <div class="col-md-9 modal-content-right">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     <p>Enter you wallet seed.</p>
-                    <input id="modal_seed_field" type="text" class="modal-content-right-text-mail" />
+                    <input id="modal_seed_field" type="password" class="modal-content-right-text-mail" />
 
                     <select id="modal_select_field"> 
                     <option value="" selected>Select Network</option>
@@ -507,8 +507,8 @@
                             showWallet.innerHTML = "Connected Account :: " + account.classicAddress + " Balance :: "+ response.result.account_data.Balance;
                             storage.setItem("xrpl_connection", client);
                             storage.setItem("xrpl_connection", client);    
-                    connectXRPLText.innerHTML = "XRPL Connected"; 
-                    connectXRPLBackText.innerHTML = "Disconnect XRPL?";  
+                            connectXRPLText.innerHTML = "XRPL Connected"; 
+                            connectXRPLBackText.innerHTML = "Disconnect XRPL?";  
                             getNFTCount();
                             listNFTs();
                         })
