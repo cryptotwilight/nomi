@@ -3,3 +3,4 @@
 This is the repository for the XRPL nomi project
 
 NOMI is an NFT commerce dApp built on the XRPL Ledger
+[NOMI DEMO](https://fragrant-field-9801.on.fleek.co/index.html)
